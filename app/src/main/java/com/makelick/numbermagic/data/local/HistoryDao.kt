@@ -9,9 +9,12 @@ import androidx.room.Query
 interface HistoryDao {
 
     @Insert
-    suspend fun insertItem(historyItem: HistoryItem)
+    suspend fun insertItem(historyItem: HistoryItem) : Long
 
-    @Query("SELECT * FROM history_item")
+    @Query("SELECT * FROM history_item ORDER BY id DESC")
     fun getAllItems(): PagingSource<Int, HistoryItem>
+
+    @Query("SELECT * FROM history_item WHERE id = :id")
+    suspend fun getItemById(id: Long): HistoryItem
 
 }

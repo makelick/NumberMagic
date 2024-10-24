@@ -89,6 +89,7 @@ dependencies {
 
     // Retrofit
     implementation(libs.retrofit)
+    implementation(libs.converter.scalars)
 
     // Room
     implementation(libs.androidx.room.runtime)

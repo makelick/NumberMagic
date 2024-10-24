@@ -8,17 +8,23 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.makelick.numbermagic.data.local.HistoryItem
-import com.makelick.numbermagic.data.repository.HistoryRepository
+import com.makelick.numbermagic.domain.HistoryRepository
+import com.makelick.numbermagic.domain.NetworkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    private val networkRepository: NetworkRepository,
     historyRepository: HistoryRepository
 ) : ViewModel() {
 
-    var number : Int? by mutableStateOf(null)
+    var isError by mutableStateOf(false)
+        private set
+
+    var number: Int? by mutableStateOf(null)
         private set
 
     val historyItems: Flow<PagingData<HistoryItem>> =
@@ -29,12 +35,27 @@ class MainViewModel @Inject constructor(
             is MainScreenIntent.ChangeNumber -> {
                 this.number = intent.number
             }
+
             is MainScreenIntent.MakeRequest -> {
-                // Make request
+                viewModelScope.launch {
+                    if (networkRepository.getFact(number ?: return@launch).isSuccess)
+                        number = null
+                    else
+                        isError = true
+                }
             }
+
             is MainScreenIntent.MakeRandomRequest -> {
-                // Load history
+                viewModelScope.launch {
+                    if (networkRepository.getRandomFact().isFailure)
+                        isError = true
+                }
             }
+
+            is MainScreenIntent.DismissError -> {
+                isError = false
+            }
+
             else -> Unit
         }
     }

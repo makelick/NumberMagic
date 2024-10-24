@@ -88,7 +88,6 @@ dependencies {
 
     // Retrofit
     implementation(libs.retrofit)
-    implementation(libs.converter.moshi)
 
     // Room
     implementation(libs.androidx.room.runtime)

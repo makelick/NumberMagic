@@ -11,6 +11,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.makelick.numbermagic.ui.NavDestinations.Detail.ITEM_ID_ARG
 import com.makelick.numbermagic.ui.detail.DetailScreen
+import com.makelick.numbermagic.ui.detail.DetailViewModel
 import com.makelick.numbermagic.ui.main.MainScreenIntent
 import com.makelick.numbermagic.ui.main.MainViewModel
 
@@ -44,10 +45,14 @@ fun NumberMagicNavHost(
             route = "${NavDestinations.Detail.route}/{$ITEM_ID_ARG}",
             arguments = NavDestinations.Detail.args
         ) { backStackEntry ->
-            val ItemId = backStackEntry.arguments?.getLong(ITEM_ID_ARG) ?: return@composable
+            val itemId = backStackEntry.arguments?.getLong(ITEM_ID_ARG) ?: return@composable
+            val viewModel = hiltViewModel<DetailViewModel>()
+            viewModel.setItem(itemId)
 
             DetailScreen(
-            )
+                viewModel = viewModel,
+                navigateUp = { navHostController.navigateUp() }
+                )
         }
     }
 }

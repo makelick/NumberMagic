@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -15,37 +16,47 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.paging.PagingData
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.makelick.numbermagic.R
 import com.makelick.numbermagic.data.local.HistoryItem
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun MainScreen(
+    viewModel: MainViewModel,
+    onEvent: (MainScreenIntent) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column {
-        InputPane(modifier = modifier)
+    Column(modifier = modifier) {
+        InputPane(
+            number = viewModel.number,
+            onEvent = onEvent
+        )
         Spacer(modifier = Modifier.height(16.dp))
-        HistoryList(modifier = modifier)
+        HistoryList(
+            historyItems = viewModel.historyItems.collectAsLazyPagingItems(),
+            onEvent = onEvent
+        )
     }
 }
 
 @Composable
 fun InputPane(
+    number: Int? = null,
+    onEvent: (MainScreenIntent) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var number by remember { mutableStateOf("") }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -56,21 +67,24 @@ fun InputPane(
             modifier = Modifier.padding(16.dp)
         ) {
             OutlinedTextField(
-                value = number,
-                onValueChange = { number = it },
+                value = number?.toString() ?: "",
+                onValueChange = { onEvent(MainScreenIntent.ChangeNumber(it.toIntOrNull())) },
                 singleLine = true,
                 placeholder = { Text(stringResource(R.string.enter_number)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = MaterialTheme.shapes.large,
                 keyboardActions = KeyboardActions(
-                    onDone = { /*TODO*/ }
+                    onDone = {
+                        onEvent(MainScreenIntent.MakeRequest)
+                        defaultKeyboardAction(ImeAction.Done)
+                    }
                 )
             )
 
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { onEvent(MainScreenIntent.MakeRequest) },
                 shape = MaterialTheme.shapes.large,
-                enabled = number.isNotBlank()
+                enabled = number != null
             ) {
                 Text(
                     text = stringResource(R.string.get_fact),
@@ -81,7 +95,7 @@ fun InputPane(
 
         Button(
             shape = MaterialTheme.shapes.small,
-            onClick = { /*TODO*/ }
+            onClick = { onEvent(MainScreenIntent.MakeRandomRequest) }
         ) {
             Text(stringResource(R.string.get_fact_about_random_number))
         }
@@ -90,18 +104,20 @@ fun InputPane(
 
 @Composable
 fun HistoryList(
+    historyItems: LazyPagingItems<HistoryItem>,
+    onEvent: (MainScreenIntent) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier.clickable { /*TODO*/ }
+        modifier = modifier
     ) {
-        items(10) {
-            HistoryItemCard(
-                HistoryItem(
-                    0,
-                    52,
-                    "The answer to the ultimate question of life, the universe, and everything"
-                )
+        items(historyItems.itemSnapshotList) { item ->
+            if (item == null) Text(text = stringResource(R.string.loading))
+            else HistoryItemCard(
+                historyItem = item,
+                modifier = modifier.clickable {
+                    onEvent(MainScreenIntent.NavigateToDetail(item.id))
+                }
             )
         }
     }
@@ -126,13 +142,31 @@ fun HistoryItemCard(
             maxLines = 1,
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(5f)
+            modifier = Modifier.weight(5f),
+            textAlign = TextAlign.End
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun MainScreen_preview() {
-    MainScreen()
+private fun InputPanePreview() {
+    InputPane(number = null)
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HistoryListPreview() {
+
+    val data = PagingData.from(
+        listOf(
+            HistoryItem(id = 1, number = 1, fact = "Fact 1"),
+            HistoryItem(id = 2, number = 2, fact = "Fact 2"),
+            HistoryItem(id = 3, number = 3, fact = "Fact 3")
+        )
+    )
+
+    HistoryList(
+        historyItems = flowOf(data).collectAsLazyPagingItems()
+    )
 }
